@@ -36,3 +36,8 @@ This repository started out with just the `boost/` and `libs/` subdirectories (p
 Only the "header-only" libraries are available (along with the header-only parts of the compiled-optional libraries). Thus, you can't (but wouldn't want to) use `boost::filesystem`, but `boost::mpl` should work fine. Most files related to them have been removed, but there may be a few stragglers.
 
 This arose as a "scratch an itch" project: if you can contribute (probably to improving StandardCplusplus so some previously-untested piece of Boost works), please do: fork and send pull requests.
+
+
+TODO: remove all the unwanted includes from the boost which are not required for Arduino.
+
+
