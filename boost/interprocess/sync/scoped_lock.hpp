@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////
 //
-// (C) Copyright Ion Gaztanaga 2005-2011. Distributed under the Boost
+// (C) Copyright Ion Gaztanaga 2005-2012. Distributed under the Boost
 // Software License, Version 1.0. (See accompanying file
 // LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
@@ -16,7 +16,11 @@
 #ifndef BOOST_INTERPROCESS_SCOPED_LOCK_HPP
 #define BOOST_INTERPROCESS_SCOPED_LOCK_HPP
 
-#if (defined _MSC_VER) && (_MSC_VER >= 1200)
+#ifndef BOOST_CONFIG_HPP
+#  include <boost/config.hpp>
+#endif
+#
+#if defined(BOOST_HAS_PRAGMA_ONCE)
 #  pragma once
 #endif
 
@@ -27,8 +31,9 @@
 #include <boost/interprocess/exceptions.hpp>
 #include <boost/interprocess/detail/mpl.hpp>
 #include <boost/interprocess/detail/type_traits.hpp>
-#include <boost/move/move.hpp>
+#include <boost/move/utility_core.hpp>
 #include <boost/interprocess/detail/posix_time_types_wrk.hpp>
+#include <boost/interprocess/detail/simple_swap.hpp>
 
 //!\file
 //!Describes the scoped_lock class.
@@ -50,12 +55,12 @@ namespace interprocess {
 template <class Mutex>
 class scoped_lock
 {
-   /// @cond
+   #if !defined(BOOST_INTERPROCESS_DOXYGEN_INVOKED)
    private:
    typedef scoped_lock<Mutex> this_type;
    BOOST_MOVABLE_BUT_NOT_COPYABLE(scoped_lock)
    typedef bool this_type::*unspecified_bool_type;
-   /// @endcond
+   #endif   //#ifndef BOOST_INTERPROCESS_DOXYGEN_INVOKED
    public:
 
    typedef Mutex mutex_type;
@@ -157,7 +162,7 @@ class scoped_lock
    //!   a)if try_unlock_upgradable_and_lock() returns true then mutex() obtains
    //!      the value from upgr.release() and owns() is set to true.
    //!   b)if try_unlock_upgradable_and_lock() returns false then upgr is
-   //!      unaffected and this scoped_lock construction as the same effects as 
+   //!      unaffected and this scoped_lock construction as the same effects as
    //!      a default construction.
    //!   c)Else upgr.owns() is false. mutex() obtains the value from upgr.release()
    //!      and owns() is set to false
@@ -259,7 +264,7 @@ class scoped_lock
    //!   mutex after the assignment (and scop will not), but the mutex's lock
    //!   count will be decremented by one.
    scoped_lock &operator=(BOOST_RV_REF(scoped_lock) scop)
-   { 
+   {
       if(this->owns())
          this->unlock();
       m_locked = scop.owns();
@@ -353,15 +358,15 @@ class scoped_lock
    //!Throws: Nothing.
    void swap( scoped_lock<mutex_type> &other)
    {
-      std::swap(mp_mutex, other.mp_mutex);
-      std::swap(m_locked, other.m_locked);
+      (simple_swap)(mp_mutex, other.mp_mutex);
+      (simple_swap)(m_locked, other.m_locked);
    }
 
-   /// @cond
+   #if !defined(BOOST_INTERPROCESS_DOXYGEN_INVOKED)
    private:
    mutex_type *mp_mutex;
    bool        m_locked;
-   /// @endcond
+   #endif   //#ifndef BOOST_INTERPROCESS_DOXYGEN_INVOKED
 };
 
 } // namespace interprocess

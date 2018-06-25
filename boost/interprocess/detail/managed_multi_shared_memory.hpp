@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////
 //
-// (C) Copyright Ion Gaztanaga 2005-2011. Distributed under the Boost
+// (C) Copyright Ion Gaztanaga 2005-2012. Distributed under the Boost
 // Software License, Version 1.0. (See accompanying file
 // LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
@@ -11,7 +11,11 @@
 #ifndef BOOST_INTERPROCESS_MANAGED_MULTI_SHARED_MEMORY_HPP
 #define BOOST_INTERPROCESS_MANAGED_MULTI_SHARED_MEMORY_HPP
 
-#if (defined _MSC_VER) && (_MSC_VER >= 1200)
+#ifndef BOOST_CONFIG_HPP
+#  include <boost/config.hpp>
+#endif
+#
+#if defined(BOOST_HAS_PRAGMA_ONCE)
 #  pragma once
 #endif
 
@@ -20,7 +24,7 @@
 
 #include <boost/interprocess/detail/managed_memory_impl.hpp>
 #include <boost/interprocess/creation_tags.hpp>
-#include <boost/detail/no_exceptions_support.hpp>
+#include <boost/core/no_exceptions_support.hpp>
 #include <boost/interprocess/detail/multi_segment_services.hpp>
 #include <boost/interprocess/detail/utilities.hpp>
 #include <boost/interprocess/shared_memory_object.hpp>
@@ -29,14 +33,17 @@
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/permissions.hpp>
 #include <boost/interprocess/detail/managed_open_or_create_impl.hpp> //managed_open_or_create_impl
-#include <new>
 #include <boost/interprocess/containers/string.hpp>
 #include <boost/interprocess/streams/vectorstream.hpp>
-#include <memory>
+#include <boost/intrusive/detail/minimal_pair_header.hpp>
+#include <string> //string
+#include <new>    //bad_alloc
+#include <ostream>//std::ends
+
 #include <boost/assert.hpp>
 //These includes needed to fulfill default template parameters of
 //predeclarations in interprocess_fwd.hpp
-#include <boost/interprocess/mem_algo/rbtree_best_fit.hpp> 
+#include <boost/interprocess/mem_algo/rbtree_best_fit.hpp>
 #include <boost/interprocess/sync/mutex_family.hpp>
 
 //!\file
@@ -69,10 +76,10 @@ class basic_managed_multi_shared_memory
                <CharType, MemoryAlgorithm, IndexType>    self_t;
    typedef ipcdetail::basic_managed_memory_impl
       <CharType, MemoryAlgorithm, IndexType>             base_t;
-  
+
    typedef typename MemoryAlgorithm::void_pointer        void_pointer;
    typedef typename ipcdetail::
-      managed_open_or_create_impl<shared_memory_object, MemoryAlgorithm::Alignment>  managed_impl;
+      managed_open_or_create_impl<shared_memory_object, MemoryAlgorithm::Alignment, true, false>  managed_impl;
    typedef typename void_pointer::segment_group_id       segment_group_id;
    typedef typename base_t::size_type                   size_type;
 
@@ -100,7 +107,7 @@ class basic_managed_multi_shared_memory
 //         if(!m_shmem.create(m_mem_name, size, m_addr))
 //            return 0;
 //         return m_shmem.get_address();
-//      }     
+//      }
 //      private:
 //      shared_memory &m_shmem;
 //      const char *m_mem_name;
@@ -134,7 +141,7 @@ class basic_managed_multi_shared_memory
             typename shmem_list_t::value_type &m_impl = *mp_frontend->m_shmem_list.rbegin();
             return result_type(m_impl.get_real_address(), m_impl.get_real_size()-1);
          }*/
-         return result_type(static_cast<void *>(0), 0); 
+         return result_type(static_cast<void *>(0), 0);
       }
 
       virtual bool update_segments ()
@@ -174,7 +181,7 @@ class basic_managed_multi_shared_memory
          : mp_frontend(frontend), m_type(type), m_segment_number(segment_number){}
 
       bool operator()(void *addr, size_type size, bool created) const
-      { 
+      {
          if(((m_type == DoOpen)   &&  created) ||
             ((m_type == DoCreate) && !created))
             return false;
@@ -211,9 +218,23 @@ class basic_managed_multi_shared_memory
          }
          return false;
       }
+
+      std::size_t get_min_size() const
+      {
+         const size_type sz = mp_frontend->get_segment_manager()->get_min_size();
+         if(sz > std::size_t(-1)){
+            //The minimum size is not representable by std::size_t
+            BOOST_ASSERT(false);
+            return std::size_t(-1);
+         }
+         else{
+            return static_cast<std::size_t>(sz);
+         }
+      }
+
       self_t * const    mp_frontend;
       type_t            m_type;
-      size_type       m_segment_number;
+      size_type         m_segment_number;
    };
 
    //!Functor to execute atomically when closing a shared memory segment.
@@ -226,7 +247,7 @@ class basic_managed_multi_shared_memory
          : mp_frontend(frontend){}
 
       void operator()(const mapped_region &region, bool last) const
-      { 
+      {
          if(last) mp_frontend->destroy_impl();
          else     mp_frontend->close_impl();
       }
@@ -251,7 +272,7 @@ class basic_managed_multi_shared_memory
                                      const permissions &perm = permissions())
       :  m_group_services(get_this_pointer())
    {
-      priv_open_or_create(create_open_func::DoCreate,name, size, perm); 
+      priv_open_or_create(create_open_func::DoCreate,name, size, perm);
    }
 
    basic_managed_multi_shared_memory(open_or_create_t,
@@ -301,7 +322,7 @@ class basic_managed_multi_shared_memory
       if(group){
          void_pointer::delete_group(group);
       }
-      return false;     
+      return false;
    }
 
    bool  priv_new_segment(typename create_open_func::type_t type,
@@ -368,7 +389,7 @@ class basic_managed_multi_shared_memory
 
    //!Frees resources. Never throws.
    void priv_close()
-   { 
+   {
       if(!m_shmem_list.empty()){
          bool ret;
          //Obtain group identifier
@@ -385,7 +406,7 @@ class basic_managed_multi_shared_memory
          m_shmem_list.clear();
       }
    }
-  
+
    private:
    shmem_list_t   m_shmem_list;
    group_services m_group_services;

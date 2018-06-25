@@ -3,7 +3,7 @@
 // This file is the adaptation for Interprocess of boost/weak_ptr.hpp
 //
 // (C) Copyright Peter Dimov 2001, 2002, 2003
-// (C) Copyright Ion Gaztanaga 2006-2011.
+// (C) Copyright Ion Gaztanaga 2006-2012.
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
@@ -15,14 +15,23 @@
 #ifndef BOOST_INTERPROCESS_WEAK_PTR_HPP_INCLUDED
 #define BOOST_INTERPROCESS_WEAK_PTR_HPP_INCLUDED
 
+#ifndef BOOST_CONFIG_HPP
+#  include <boost/config.hpp>
+#endif
+#
+#if defined(BOOST_HAS_PRAGMA_ONCE)
+#  pragma once
+#endif
+
 #include <boost/interprocess/detail/config_begin.hpp>
 #include <boost/interprocess/detail/workaround.hpp>
 
 #include <boost/interprocess/smart_ptr/shared_ptr.hpp>
-#include <boost/detail/no_exceptions_support.hpp>
+#include <boost/core/no_exceptions_support.hpp>
 #include <boost/interprocess/allocators/allocator.hpp>
 #include <boost/interprocess/smart_ptr/deleter.hpp>
 #include <boost/intrusive/pointer_traits.hpp>
+#include <boost/move/adl_move_swap.hpp>
 
 //!\file
 //!Describes the smart pointer weak_ptr.
@@ -50,7 +59,7 @@ namespace interprocess{
 template<class T, class A, class D>
 class weak_ptr
 {
-   /// @cond
+   #if !defined(BOOST_INTERPROCESS_DOXYGEN_INVOKED)
    private:
    // Borland 5.5.1 specific workarounds
    typedef weak_ptr<T, A, D> this_type;
@@ -61,7 +70,7 @@ class weak_ptr
                      <T>::type            reference;
    typedef typename ipcdetail::add_reference
                      <T>::type            const_reference;
-   /// @endcond
+   #endif   //#ifndef BOOST_INTERPROCESS_DOXYGEN_INVOKED
 
    public:
    typedef T element_type;
@@ -99,7 +108,7 @@ class weak_ptr
    template<class Y>
    weak_ptr(weak_ptr<Y, A, D> const & r)
       : m_pn(r.m_pn) // never throws
-   { 
+   {
       //Construct a temporary shared_ptr so that nobody
       //can destroy the value while constructing this
       const shared_ptr<T, A, D> &ref = r.lock();
@@ -126,7 +135,7 @@ class weak_ptr
    //!implied guarantees) via different means, without creating a temporary.
    template<class Y>
    weak_ptr & operator=(weak_ptr<Y, A, D> const & r) // never throws
-   { 
+   {
       //Construct a temporary shared_ptr so that nobody
       //can destroy the value while constructing this
       const shared_ptr<T, A, D> &ref = r.lock();
@@ -174,7 +183,7 @@ class weak_ptr
    //!testing purposes, not for production code.
    long use_count() const // never throws
    {  return m_pn.use_count();  }
-   
+
    //!Returns: Returns: use_count() == 0.
    //!
    //!Throws: nothing.
@@ -193,13 +202,13 @@ class weak_ptr
    //!
    //!Throws: nothing.
    void swap(this_type & other) // never throws
-   {  ipcdetail::do_swap(m_pn, other.m_pn);   }
+   {  ::boost::adl_move_swap(m_pn, other.m_pn);   }
 
-   /// @cond
+   #if !defined(BOOST_INTERPROCESS_DOXYGEN_INVOKED)
    template<class T2, class A2, class D2>
    bool _internal_less(weak_ptr<T2, A2, D2> const & rhs) const
    {  return m_pn < rhs.m_pn;  }
-  
+
    template<class Y>
    void _internal_assign(const ipcdetail::shared_count<Y, A, D> & pn2)
    {
@@ -213,7 +222,7 @@ class weak_ptr
    template<class T2, class A2, class D2> friend class weak_ptr;
 
    ipcdetail::weak_count<T, A, D> m_pn;      // reference counter
-   /// @endcond
+   #endif   //#ifndef BOOST_INTERPROCESS_DOXYGEN_INVOKED
 };  // weak_ptr
 
 template<class T, class A, class D, class U, class A2, class D2> inline
